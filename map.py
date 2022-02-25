@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import utils
+import utils.plotting
 
 class map:
 
@@ -100,7 +100,7 @@ class map:
             cov = None if plotCov is False else lm.cov
             index = None if plotIndex is False else lm.index
 
-            utils.plot_landmark(ax, loc = lm.xy, cov = cov, 
+            utils.plotting.plot_landmark(ax, loc = lm.xy, cov = cov, 
                                 index = index, 
                                 markerColor = markerColor, 
                                 markerShape = markerShape, 

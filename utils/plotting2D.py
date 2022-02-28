@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
-def plot_cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = 'b' ,  **kwargs):
+def cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = 'b' ,  **kwargs):
         #slightly edited from https://stackoverflow.com/questions/12301071/multidimensional-confidence-intervals
         '''
         Plots an `nstd` sigma error ellipse based on the specified covariance
@@ -36,21 +36,26 @@ def plot_cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = '
 
         if ax is not None:
             ax.add_patch(ellip)
-        
+    
         return ellip
 
-def plot_landmark(axes, loc, cov = None, index = None, 
+def point(axes, loc, cov = None, index = None, 
         markerShape = '.', markerColor = 'b', markerSize = 5, textColor = 'k'):
     
     graphics = []
     graphics.append(axes.scatter(loc[0],loc[1], marker = markerShape, c = markerColor, s = markerSize))
     if cov is not None:
-        graphics.append(plot_cov_ellipse(loc,cov,nstd = 1,ax = axes,edgecolor = markerColor))
+        graphics.append(cov_ellipse(loc,cov,nstd = 1,ax = axes,edgecolor = markerColor))
     if index is not None:
         graphics.append(axes.text(loc[0],loc[1],index, color = textColor))
 
     return graphics
 
-def R2(theta):
-    return np.array([[np.cos(theta),-np.sin(theta)],
-                  [np.sin(theta),np.cos(theta)]])
+
+def prepAxes():
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_xlabel('x'); ax.set_ylabel('y'); 
+        ax.set_aspect('equal'); ax.grid()
+
+        return ax, fig

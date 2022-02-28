@@ -53,7 +53,7 @@ def solveArgmin(clusterS,clusterT,I,Tinit):
         S - source
         T - target, this is the static point cloud.
 
-        I - list of data assosications [ (index of point in source, index of point in target) ]
+        I - list of data assosications [ index of point in target) ]
 
         Tinit - gtsam.Pose2 representing guess of Tsource2target
         '''
@@ -71,15 +71,13 @@ def solveArgmin(clusterS,clusterT,I,Tinit):
         #insert X1 (our transform) to initial values
         initial_values.insert(X(1), Tinit) 
 
-        for da in I:
-            i = da[1] #index of landmark
-
+        for i in I:
             #add factors for source cluster
-            factor = gtsam.CustomFactor(clusterT[da[0]]["cov"], X(1), L(i), partial(errorFunction, clusterT[da[1]]["pnt"]))
+            factor = gtsam.CustomFactor(clusterS[i]["cov"], X(1), L(i), partial(error_delta, clusterS[i]["pnt"]))
             graph.push_back(factor)
 
             #add factors for target cluster
-            factor = gtsam.PriorFactorPoint2(L(i), clusterT[da[1]]["pnt"],clusterT[da[1]]["cov"])
+            factor = gtsam.PriorFactorPoint2(L(i), clusterT[i]["pnt"],clusterT[i]["cov"])
             graph.push_back(factor)
 
 
@@ -89,20 +87,14 @@ def solveArgmin(clusterS,clusterT,I,Tinit):
 
         return result
 
-def error_lm(measurement: np.ndarray, this: gtsam.CustomFactor,
+def error_delta(measurement: np.ndarray, this: gtsam.CustomFactor,
              values: gtsam.Values,
              jacobians: Optional[List[np.ndarray]]) -> float:
-    """Landmark Factor error function
-    :param measurement: Landmark measurement, to be filled with `partial`
-    :param this: gtsam.CustomFactor handle
-    :param values: gtsam.Values
-    :param jacobians: Optional list of Jacobians
-    :return: the unwhitened error
-    """
 
-    #basically I want this delta factor: https://gtsam.org/doxygen/a05408.html
-    #based on https://github.com/borglab/gtsam/blob/develop/gtsam_unstable/slam/RelativeElevationFactor.cpp
-
+     #https://github.com/borglab/gtsam/blob/develop/gtsam_unstable/slam/RelativeElevationFactor.cpp
+     #https://github.com/borglab/gtsam/blob/43e8f1e5aeaf11890262722c1e5e04a11dbf9d75/gtsam_unstable/slam/PoseToPointFactor.h
+     #https://github.com/borglab/gtsam/blob/b1e91671fdf366c3d714c68f29df04db12b889f1/python/CustomFactors.md
+    
     X_key = this.keys()[0]
     L_key = this.keys()[1]
 
@@ -113,6 +105,7 @@ def error_lm(measurement: np.ndarray, this: gtsam.CustomFactor,
     error = Xest.transformTo(Lest) - measurement
     
     if jacobians is not None:
-        jacobians[0] = I
+        jacobians[0] = None
+        jacobians[1] = None
 
     return error

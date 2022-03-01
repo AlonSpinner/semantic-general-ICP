@@ -1,79 +1,112 @@
 from scipy.optimize import fmin_cg
-from clusters import cluster2
 import numpy as np
-from utils.transforms2D import R2 
+from utils.transforms2D import dR2, x_to_Rt
+from sklearn.neighbors import NearestNeighbors
+import copy
  
-def generalICP(source,target):
- 
+def generalICP(sourcePoints, sourceCov, targetPoints, targetCov, 
+                x0 = np.zeros(3),tol = 1e-6, n_iter_max = 100):
+
+    '''
+    find transform T such that target = T(source)
+
+    sourcePoints, targetPoints: np.ndarray((2,m))
+    sourceCov, targetCoV: np.ndarray((m,2,2))
     
-    while True:
-        cpt = cpt+1
-        R = rot_mat(x[3:])
-        M = np.array([np.linalg.inv(cov_ref[i] + R @ cov_data[i] @ R.T) for i in range(n)])
+    '''
+    x = x0
+    itr = 0
+    fminPrev = np.inf
+    converged = False
+    while not converged:
+        itr += 1
+        
+        #find data assosications
+        R, t = x_to_Rt(x)
+        TsourcePoints = R @ sourcePoints - t
+        neigh = NearestNeighbors(n_neighbors = 1)
+        neigh.fit(targetPoints.T)
+        i = neigh.kneighbors(TsourcePoints.T, return_distance = False)
 
-        f = lambda x: loss(x,data.points[indexes_d],ref.points[indexes_r],M)
-        df = lambda x: grad_loss(x,data.points[indexes_d],ref.points[indexes_r],M)
+        #compute argmin, assuming fixed Mi
+        f = lambda x: loss(x, TsourcePoints , targetPoints[:,i].squeeze(),
+                     sourceCov, targetCov[i].squeeze())
+        fprime = lambda x: grad(x, TsourcePoints , targetPoints[:,i].squeeze(),
+                     sourceCov, targetCov[i].squeeze())
+        out = fmin_cg(f = f, x0 = x, disp = False, full_output = True)
+        x = out[0]; fmin = out[1]
 
-        out = fmin_cg(f = f, x0 = x, fprime = df, disp = False, full_output = True)
-
-        x = out[0]
-        f_min = out[1]
-        if verbose:
-            print("\t\t EM style iteration {} with loss {}".format(cpt,f_min))
-
-        if last_min - f_min < tol:
-            if verbose:
-                print("\t\t\t Stopped EM because not enough improvement or not at all")
+        if itr > n_iter_max or abs(fmin - fminPrev) < tol:
             break
-        elif cpt >= n_iter_max:
-            if verbose:
-                print("\t\t\t Stopped EM because maximum number of iterations reached")
-            break
-        else:
-            last_min = f_min
+
+    return x  
 
 
-def loss(x,a,b,M):
-    """
-    loss for parameter x
 
-    params:
-        x : length 3 vector of transformation parameters
-            (t_x,t_y,t_theta)
-        a : data to align n*2, part of source
-        b : ref point cloud n*2 a[i] is the nearest neibhor of Rb[i]+t
-        M : central matrix for each data point n*3*3 (cf loss equation)
+def lossPair(x,a,b,aCov,bCov):
+    '''
+    x : (x,y,theta) representing transform
+    a : source point 2x1
+    b : target point 2x1
+    aCov,bCov ~ 2x2 covariance matrices
+    '''
 
-    returns:
-        Value of the loss function
-    """
-    residual = b - R2(x[3])@ a -x[None,:2] # shape n*d
-    tmp = np.sum(M * residual[:,None,:], axis = 2) # shape n*d
-    return np.sum(residual * tmp)
+    R, t = x_to_Rt(x)
+    d = b - R @ a - t
+    invCov = np.linalg.inv(bCov + R @ aCov @ R.T)
+    loss = d.T @ invCov @ d
 
-def grad_loss(x,a,b,M):
-    """
-    Gradient of the loss loss for parameter x
+    return np.asscalar(loss)
 
-    params:
-        x : length 6 vector of transformation parameters
-            (t_x,t_y,t_z, theta_x, theta_y, theta_z)
-        a : data to align n*3
-        b : ref point cloud n*3 a[i] is the nearest neibhor of Rb[i]+t
-        M : central matrix for each data point n*3*3 (cf loss equation)
+def gradPair(x,a,b,aCov,bCov):
+    '''
+    x : (x,y,theta) representing transform
+    a : source point 2x1
+    b : target point 2x1
+    aCov,bCov ~ 2x2 covariance matrices
+    '''
 
-    returns:
-        Value of the gradient of the loss function
-    """
-    t = x[:3]
-    R = rot_mat(x[3:])
-    g = np.zeros(6)
-    residual = b - a @ R2(x[3]) -x[None,:2] # shape n*d
-    tmp = np.sum(M * residual[:,None,:], axis = 2) # shape n*d
+    R, t = x_to_Rt(x)
+    d = b - R @ a - t
+    invCov = np.linalg.inv(bCov + R @ aCov @ R.T)
 
-    g[:3] = - 2*np.sum(tmp, axis = 0)
+    #computations copied from "SEMANTIC ICPTHROUGHEM "Semantic Iterative Closest Point through Expectation-Maximization"
+    grad_t = -2 * invCov @ d #2x1
+    grad_R = -2 * invCov @ d @ (a.T + d.T @ invCov @ R @ aCov) #2x2
+    
+    grad_theta = np.sum(grad_R * dR2(x[2])) #assume R is made of 4 independent variables... to get this correctly we need lie algebra
+    # https://proceedings.neurips.cc/paper/2009/file/82cec96096d4281b7c95cd7e74623496-Paper.pdf
+    # https://github.com/EPFL-LGG/RotationOptimization/blob/master/doc/OptimizingRotations.pdf
 
-    grad_R = - 2* (tmp.T @ a) # shape d*d
-    grad_R_euler = grad_rot_mat(x[3:]) # shape 3*d*d
-    g[3:] = np.sum(grad_R[None,:,:] * grad_R_euler, axis = (1,2)) # chain rule
-    return g
+    grad = np.array([grad_t[0][0],grad_t[1][0],grad_theta])
+    return grad
+
+def loss(x,a,b,aCov,bCov):
+    '''
+    x : (x,y,theta) representing transform
+    a : source points 2xm
+    b : target point 2xm
+    aCov,bCov ~ mx2x2 covariance matrices
+    '''
+    assert a.shape == b.shape
+    assert aCov.shape == bCov.shape
+
+    loss = 0
+    for i in range(len(a)):
+        loss += lossPair(x,a[:,None,i],b[:,None,i],aCov[i],bCov[i])
+    return loss
+
+def grad(x,a,b,aCov,bCov):
+    '''
+    x : (x,y,theta) representing transform
+    a : source points 2xm
+    b : target point 2xm
+    aCov,bCov ~ mx2x2 covariance matrices
+    '''
+    assert a.shape == b.shape
+    assert aCov.shape == bCov.shape
+
+    grad = 0
+    for i in range(len(a)):
+        grad += gradPair(x,a[:,None,i],b[:,None,i],aCov[i],bCov[i])
+    return grad

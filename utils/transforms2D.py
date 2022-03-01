@@ -1,5 +1,10 @@
 import numpy as np
 
+def dR2(theta):
+    return np.array([[-np.sin(theta), -np.cos(theta)],
+                     [np.cos(theta), -np.sin(theta)]])
+
+
 def R2(theta):
     return np.array([[np.cos(theta),-np.sin(theta)],
                   [np.sin(theta),np.cos(theta)]])
@@ -35,7 +40,7 @@ def T2Rt(T):
     t = T[:2,[2]] #having [2] instead of just 2 keeps the 2d dimensions of the vector
     return R,t
 
-def T_to_components(T):
+def T_to_x(T):
     #if Te2w then this transform it to "pose"
     v = T[:2,0] #[cos,sin]
     theta = np.arctan2(v[1],v[0])
@@ -43,11 +48,17 @@ def T_to_components(T):
     y = T[1,2]
     return x, y, theta
 
-def components_to_T(x,y,theta):
-    R = R2(theta)
-    t = np.array[[x],
-                 [y]]
+def x_to_T(x):
+    # x = x,y,theta
+    R,t = x_to_Rt(x)
     return Rt2T(R,t)
+
+def x_to_Rt(x):
+    # x = x,y,theta
+    R = R2(x[2])
+    t = np.array([[x[0]],
+                 [x[1]]])
+    return R,t
 
 def odomTFromTrajT(T):
     dT = []

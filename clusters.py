@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import utils.plotting2D
-import sklearn.neighbors
+from sklearn.neighbors import NearestNeighbors
 
 class cluster2:
 
@@ -29,28 +29,29 @@ class cluster2:
         '''
 
         #instance attributes
-        self.kdTree = []
         self.points = np.array([]) #numpy array of points (m,2)
         self.covariances = np.array([]) #numpy array of covariances (m,2,2)
         self.pointLabels = [] # list of strings
-        
+     
         self.classes = [] #list of all class labels
         
         if not np.empty(points):
             self.addPoints(points, covariances, pointLabels)
 
     def addPoints(self,points, covariances = None, pointLabels = None):
+        assert len(covariances) == len(points) == len(pointLabels)
+        
         if self.points.size == 0:
             self.points = points
         else:
-            self.points = np.vstack(self.points,points)
+            self.points = np.vstack((self.points,points))
 
         if covariances is not None:
             if self.covariances.size == 0:
                 self.covariances = covariances
             else:
-                self.covariances = np.vstack(self.covariances,covariances)
-
+                self.covariances = np.vstack((self.covariances,covariances))
+            
         if pointLabels is not None:
             self.pointLabels.extend(pointLabels)
         
@@ -126,31 +127,17 @@ class cluster2:
                                 markerSize = markerSize,
                                 textColor = 'k')
 
-    def transform(self, R: np.ndarray((2,2)), t: np.ndarray((2,1)), transformCov = None):
+    def transform(self, R: np.ndarray((2,2)), t: np.ndarray((2,1)), transformCov = True):
         #transforms Points locations and convarance matrices
-        # xy_new = R @ xy_old + t
-        # cov_new = R @ cov_old @ R'
         self.points = (R @ self.points.T + t).T
-
         if transformCov:
             self.covariances = (R @ self.covariances[:,None,:] @ R.T).squeeze()
 
-    def computeKDTree(self):
-        self.kdTree = sklearn.neighbors.KDTree(self.points,2)
-
-    def findClosestLandmark(self,targetCluster):
-        #returns 
-        indices = []
-        for pSource in self.points:
-            indx = 0
-            d = np.inf
-            for pTarget in targetCluster.points:
-                dTest = np.linalg.norm(pSource.xy-pTarget.xy)
-                if dTest < d:
-                    indx = pTarget.index
-                    d = dTest
-            indices.append(indx)
-        return indices
+    def findKnnInTarget(self,targetCluster, n = 1):        
+        neigh = NearestNeighbors(n_neighbors = n )
+        neigh.fit(targetCluster.points)
+        distances, indicies = neigh.kneighbors(self.points, return_distance=True)
+        return indicies, distances
 
 
     

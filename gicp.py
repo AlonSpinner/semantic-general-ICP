@@ -31,7 +31,7 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
                      sourceCov, targetCov[i])
         jac = lambda x: grad(x, sourcePoints , targetPoints[i],
                      sourceCov, targetCov[i])
-        out = least_squares(fun,x, jac = jac)
+        out = least_squares(fun,x, jac = jac, loss = 'cauchy', f_scale = 0.1)
         x = out.x; fmin = out.cost
 
         #logistics
@@ -44,6 +44,15 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
 
     return x, fmin, itr, df, i
 
+
+def mutualClosest(a,b):
+    '''
+    x : (x,y,theta) representing transform
+    a : source points mx2x1
+    b : target point mxnx2x1
+    aCov: source points covariance mx2x2
+    bCov: source points covariance mxnx2x2
+    '''
 
 def lossPair(x,a,b,aCov,bCov):
     '''

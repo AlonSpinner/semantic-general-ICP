@@ -64,7 +64,7 @@ class cluster2:
         
         x = np.random.uniform(xrange[0],xrange[1],(N,1))
         y = np.random.uniform(yrange[0],yrange[1],(N,1))
-        points = np.hstack((x,y)).reshape(N,2,1)
+        points = np.hstack((x,y)).reshape(-1,2,1)
 
         if sigmarange is not None:
             covariances = np.zeros((N,2,2))

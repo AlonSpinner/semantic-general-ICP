@@ -29,6 +29,11 @@ def inverseTransform(Ta2b):
     Tb2a = Rt2T(Rb2a,t_a_a2b)
     return Tb2a
 
+def inverse_x(x):
+    T = x_to_T(x)
+    invT = inverseTransform(T)
+    return T_to_x(invT)
+
 def Rt2T(R,t):
     #T - 3x3 matrix, t - 2x1 matrix, R - 2x2 matrix
     M2x3 = np.hstack([R,t])

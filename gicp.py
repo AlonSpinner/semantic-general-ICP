@@ -42,7 +42,7 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
         fminPrev = fmin
         itr += 1
 
-    return x, fmin, itr, df
+    return x, fmin, itr, df, i
 
 
 def lossPair(x,a,b,aCov,bCov):

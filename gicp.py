@@ -20,14 +20,14 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
     while not converged:
 
         #find data assosications
-        i = mutualClosest(x,sourcePoints,targetPoints, n)
+        i = DA_sourceClosestToTarget(x,sourcePoints,targetPoints, n)
         
         #argmin
         fun = lambda x: loss(x, sourcePoints[i[:,0]] , targetPoints[i[:,1]],
                      sourceCov[i[:,0]], targetCov[i[:,1]])
         jac = lambda x: grad(x, sourcePoints[i[:,0]] , targetPoints[i[:,1]],
                      sourceCov[i[:,0]], targetCov[i[:,1]])
-        out = least_squares(fun,x, jac = jac, loss = 'cauchy', f_scale = 1)
+        out = least_squares(fun,x, jac = jac, loss = 'linear', f_scale = 1)
         x = out.x; fmin = out.cost
 
         #logistics
@@ -40,8 +40,30 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
 
     return x, fmin, itr, df, i
 
+def DA_sourceClosestToTarget(x,a,b, n=1):
+    '''
+    inputs:
+    a : source points, mx2x1
+    b : target point, mx2x1
 
-def mutualClosest(x,a,b, n=1):
+    outputs:
+    i :  data assosication indcies [index in a, index in b], kx2
+    '''
+
+    R, t = x_to_Rt(x)
+    m = R @ a + t
+
+    neigh_b = NearestNeighbors(n_neighbors = n).fit(b.reshape(-1,2))
+    m2b = neigh_b.kneighbors(m.reshape(-1,2), return_distance = False)
+    
+    i = []
+    for im,m2b_im in enumerate(m2b): #go over points in m that point to b
+        for ib in m2b_im: #go over index pointers to b
+                i.append([im,ib])
+    return np.array(i)
+
+
+def DA_mutualClosest(x,a,b, n=1):
     '''
     inputs:
     a : source points, mx2x1

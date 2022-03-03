@@ -51,7 +51,7 @@ def T_to_x(T):
     theta = np.arctan2(v[1],v[0])
     x = T[0,2]
     y = T[1,2]
-    return x, y, theta
+    return np.array([x, y, theta])
 
 def x_to_T(x):
     # x = x,y,theta

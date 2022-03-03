@@ -18,8 +18,7 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
     fminPrev = np.inf
     converged = False
     while not converged:
-        itr += 1
-        
+
         #find data assosications
         R, t = x_to_Rt(x)
         TsourcePoints = R @ sourcePoints + t
@@ -27,17 +26,23 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
         neigh.fit(targetPoints.reshape(-1,2))
         i = neigh.kneighbors(TsourcePoints.reshape(-1,2), return_distance = False)
 
-        fun = lambda x: loss(x, TsourcePoints , targetPoints[i],
+        #argmin
+        fun = lambda x: loss(x, sourcePoints , targetPoints[i],
                      sourceCov, targetCov[i])
-        jac = lambda x: grad(x, TsourcePoints , targetPoints[i],
+        jac = lambda x: grad(x, sourcePoints , targetPoints[i],
                      sourceCov, targetCov[i])
-        out = least_squares(fun,x, jac = jac, method = 'lm', loss = 'linear')
+        out = least_squares(fun,x, jac = jac)
         x = out.x; fmin = out.cost
 
-        if itr == n_iter_max or abs(fmin - fminPrev) < tol:
+        #logistics
+        df = abs(fmin - fminPrev)
+        if itr == n_iter_max or df < tol:
             break
 
-    return x, fmin, itr
+        fminPrev = fmin
+        itr += 1
+
+    return x, fmin, itr, df
 
 
 def lossPair(x,a,b,aCov,bCov):
@@ -49,7 +54,7 @@ def lossPair(x,a,b,aCov,bCov):
     '''
 
     R, t = x_to_Rt(x)
-    d = b - R @ a - t
+    d = b - (R @ a + t)
     invCov = np.linalg.inv(bCov + R @ aCov @ R.T)
     loss = d.T @ invCov @ d
     return np.asscalar(loss)
@@ -63,7 +68,7 @@ def gradPair(x,a,b,aCov,bCov):
     '''
 
     R, t = x_to_Rt(x)
-    d = b - R @ a - t
+    d = b - (R @ a + t)
     invCov = np.linalg.inv(bCov + R @ aCov @ R.T)
 
     #computations copied from "SEMANTIC ICPTHROUGHEM "Semantic Iterative Closest Point through Expectation-Maximization"

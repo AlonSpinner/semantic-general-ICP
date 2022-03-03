@@ -20,18 +20,14 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
     while not converged:
 
         #find data assosications
-        R, t = x_to_Rt(x)
-        TsourcePoints = R @ sourcePoints + t
-        neigh = NearestNeighbors(n_neighbors = n)
-        neigh.fit(targetPoints.reshape(-1,2))
-        i = neigh.kneighbors(TsourcePoints.reshape(-1,2), return_distance = False)
-
+        i = mutualClosest(x,sourcePoints,targetPoints, n)
+        
         #argmin
-        fun = lambda x: loss(x, sourcePoints , targetPoints[i],
-                     sourceCov, targetCov[i])
-        jac = lambda x: grad(x, sourcePoints , targetPoints[i],
-                     sourceCov, targetCov[i])
-        out = least_squares(fun,x, jac = jac, loss = 'cauchy', f_scale = 0.1)
+        fun = lambda x: loss(x, sourcePoints[i[:,0]] , targetPoints[i[:,1]],
+                     sourceCov[i[:,0]], targetCov[i[:,1]])
+        jac = lambda x: grad(x, sourcePoints[i[:,0]] , targetPoints[i[:,1]],
+                     sourceCov[i[:,0]], targetCov[i[:,1]])
+        out = least_squares(fun,x, jac = jac, loss = 'cauchy', f_scale = 1)
         x = out.x; fmin = out.cost
 
         #logistics
@@ -45,14 +41,32 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
     return x, fmin, itr, df, i
 
 
-def mutualClosest(a,b):
+def mutualClosest(x,a,b, n=1):
     '''
-    x : (x,y,theta) representing transform
-    a : source points mx2x1
-    b : target point mxnx2x1
-    aCov: source points covariance mx2x2
-    bCov: source points covariance mxnx2x2
+    inputs:
+    a : source points, mx2x1
+    b : target point, mx2x1
+
+    outputs:
+    i :  data assosication indcies [index in a, index in b], kx2
     '''
+
+    R, t = x_to_Rt(x)
+    m = R @ a + t
+
+    neigh_b = NearestNeighbors(n_neighbors = n).fit(b.reshape(-1,2))
+    m2b = neigh_b.kneighbors(m.reshape(-1,2), return_distance = False)
+    
+    neigh_m = NearestNeighbors(n_neighbors = n).fit(m.reshape(-1,2))
+    b2m = neigh_m.kneighbors(b.reshape(-1,2), return_distance = False)
+
+    i = []
+    for im,m2b_im in enumerate(m2b): #go over points in m that point to b
+        for ib in m2b_im: #go over index pointers to b 
+            if im in b2m[ib]: #if point in b also points to im, take it
+                i.append([im,ib])
+
+    return np.array(i)
 
 def lossPair(x,a,b,aCov,bCov):
     '''
@@ -94,17 +108,14 @@ def loss(x,a,b,aCov,bCov):
     '''
     x : (x,y,theta) representing transform
     a : source points mx2x1
-    b : target point mxnx2x1
+    b : target point mx2x1
     aCov: source points covariance mx2x2
-    bCov: source points covariance mxnx2x2
+    bCov: source points covariance mx2x2
     '''
     m = len(a)
-    n = len(b[0])
-
-    loss = np.zeros((n*m))
+    loss = np.zeros(m)
     for i in range(m):
-        for j in range(n):
-            loss[i*n+j] = lossPair(x,a[i],b[i][j],aCov[i],bCov[i][j])
+            loss[i] = lossPair(x,a[i],b[i],aCov[i],bCov[i])
     return loss
 def grad(x,a,b,aCov,bCov):
     '''
@@ -112,13 +123,11 @@ def grad(x,a,b,aCov,bCov):
     a : source points 2xm
     b : target point 2xm
     aCov: source points covariance mx2x2
-    bCov: source points covariance mxnx2x2
+    bCov: source points covariance mx2x2
     '''
     m = len(a)
-    n = len(b[0])
 
-    grad = np.zeros((n*m,3))
+    grad = np.zeros((m,3))
     for i in range(m):
-        for j in range(n):
-            grad[i*n+j,:] = gradPair(x,a[i],b[i][j],aCov[i],bCov[i][j])
+            grad[i,:] = gradPair(x,a[i],b[i],aCov[i],bCov[i])
     return grad

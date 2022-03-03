@@ -10,7 +10,7 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
     '''
     find transform T such that target = T(source)
 
-    sourcePoints, targetPoints: np.ndarray((2,m))
+    sourcePoints, targetPoints: np.ndarray((m,2,1))
     sourceCov, targetCoV: np.ndarray((m,2,2))
     
     '''
@@ -25,14 +25,13 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
         R, t = x_to_Rt(x)
         TsourcePoints = R @ sourcePoints - t
         neigh = NearestNeighbors(n_neighbors = 1)
-        neigh.fit(targetPoints.T)
-        i = neigh.kneighbors(TsourcePoints.T, return_distance = False)
+        neigh.fit(targetPoints.reshape(-1,2))
+        i = neigh.kneighbors(TsourcePoints.reshape(-1,2), return_distance = False)
 
-        #compute argmin, assuming fixed Mi
-        f = lambda x: loss(x, TsourcePoints , targetPoints[:,i].squeeze(),
-                     sourceCov, targetCov[i].squeeze())
-        fprime = lambda x: grad(x, TsourcePoints , targetPoints[:,i].squeeze(),
-                     sourceCov, targetCov[i].squeeze())
+        f = lambda x: loss(x, TsourcePoints , targetPoints[i],
+                     sourceCov, targetCov[i])
+        fprime = lambda x: grad(x, TsourcePoints , targetPoints[i],
+                     sourceCov, targetCov[i])
         out = fmin_cg(f = f, x0 = x, disp = False, full_output = True)
         x = out[0]; fmin = out[1]
 
@@ -55,7 +54,6 @@ def lossPair(x,a,b,aCov,bCov):
     d = b - R @ a - t
     invCov = np.linalg.inv(bCov + R @ aCov @ R.T)
     loss = d.T @ invCov @ d
-
     return np.asscalar(loss)
 
 def gradPair(x,a,b,aCov,bCov):
@@ -78,22 +76,22 @@ def gradPair(x,a,b,aCov,bCov):
     # https://proceedings.neurips.cc/paper/2009/file/82cec96096d4281b7c95cd7e74623496-Paper.pdf
     # https://github.com/EPFL-LGG/RotationOptimization/blob/master/doc/OptimizingRotations.pdf
 
-    grad = np.array([grad_t[0][0],grad_t[1][0],grad_theta])
+    grad = np.array([grad_t[0,0],grad_t[1,0],grad_theta])
     return grad
 
 def loss(x,a,b,aCov,bCov):
     '''
     x : (x,y,theta) representing transform
-    a : source points 2xm
-    b : target point 2xm
-    aCov,bCov ~ mx2x2 covariance matrices
+    a : source points mx2x1
+    b : target point mxnx2x1
+    aCov: source points covariance mx2x2
+    bCov: source points covariance mxnx2x2
     '''
-    assert a.shape == b.shape
-    assert aCov.shape == bCov.shape
 
     loss = 0
     for i in range(len(a)):
-        loss += lossPair(x,a[:,None,i],b[:,None,i],aCov[i],bCov[i])
+        for j in range(len(b[i])):
+            loss += lossPair(x,a[i],b[i][j],aCov[i],bCov[i][j])
     return loss
 
 def grad(x,a,b,aCov,bCov):
@@ -101,12 +99,12 @@ def grad(x,a,b,aCov,bCov):
     x : (x,y,theta) representing transform
     a : source points 2xm
     b : target point 2xm
-    aCov,bCov ~ mx2x2 covariance matrices
+    aCov: source points covariance mx2x2
+    bCov: source points covariance mxnx2x2
     '''
-    assert a.shape == b.shape
-    assert aCov.shape == bCov.shape
 
     grad = 0
     for i in range(len(a)):
-        grad += gradPair(x,a[:,None,i],b[:,None,i],aCov[i],bCov[i])
+        for j in range(len(b[i])):
+            grad += gradPair(x,a[i],b[i][j],aCov[i],bCov[i][j])
     return grad

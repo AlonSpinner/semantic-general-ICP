@@ -29,7 +29,7 @@ class cluster2:
         '''
 
         #instance attributes
-        self.points = np.array([]) #numpy array of points (m,2)
+        self.points = np.array([]) #numpy array of points (m,2,1)
         self.covariances = np.array([]) #numpy array of covariances (m,2,2)
         self.pointLabels = [] # list of strings
      
@@ -64,7 +64,7 @@ class cluster2:
         
         x = np.random.uniform(xrange[0],xrange[1],(N,1))
         y = np.random.uniform(yrange[0],yrange[1],(N,1))
-        points = np.hstack((x,y))
+        points = np.hstack((x,y)).reshape(N,2,1)
 
         if sigmarange is not None:
             covariances = np.zeros((N,2,2))

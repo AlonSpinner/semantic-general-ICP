@@ -21,11 +21,15 @@ def composeTransform(Ta2w,Ta2b):
     Tb2w = Ta2w @ Tb2a
     return Tb2w
 
+def inverseRt(Ra2b,t_b_b2a):
+    Rb2a = Ra2b.T
+    t_a_a2b = Rb2a @ (-t_b_b2a)
+    return Rb2a, t_a_a2b
+
 def inverseTransform(Ta2b):
     #Ta2b = [Ra2b,t_b_b2a ; 0 0 1] - size 3x3
     Ra2b, t_b_b2a = T2Rt(Ta2b)
-    Rb2a = Ra2b.T
-    t_a_a2b = Rb2a @ (-t_b_b2a)
+    Rb2a, t_a_a2b =  inverseRt(Ra2b,t_b_b2a)
     Tb2a = Rt2T(Rb2a,t_a_a2b)
     return Tb2a
 

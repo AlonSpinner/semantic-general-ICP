@@ -3,7 +3,7 @@ import numpy as np
 from utils.transforms2D import dR2, x_to_Rt
 from sklearn.neighbors import NearestNeighbors
  
-def generalICP(sourcePoints, sourceCov, targetPoints, targetCov, 
+def gicp(sourcePoints, sourceCov, targetPoints, targetCov, 
                 x0 = np.zeros(3), n = 1,tol = 1e-6, n_iter_max = 50):
 
     '''
@@ -40,6 +40,10 @@ def generalICP(sourcePoints, sourceCov, targetPoints, targetCov,
 
     return x, fmin, itr, df, i
 
+def DA_perfect(a,b):
+    #assumes both a and b are of the same shape and a[i] <-> b[i]
+    return np.array([list(range(len(a))),list(range(len(b)))]).T
+
 def DA_sourceClosestToTarget(x,a,b, n=1):
     '''
     inputs:
@@ -64,6 +68,7 @@ def DA_sourceClosestToTarget(x,a,b, n=1):
 
 
 def DA_mutualClosest(x,a,b, n=1):
+    #This turned to be total shit
     '''
     inputs:
     a : source points, mx2x1

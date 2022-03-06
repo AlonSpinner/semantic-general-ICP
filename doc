@@ -3,3 +3,17 @@ reference:
 
 teaser++:
 	https://teaser.readthedocs.io/en/latest/installation.html
+
+
+other useful online packages:
+*) https://github.com/koide3/hdl_global_localization
+*) https://github.com/ethz-asl/robust_point_cloud_registration.
+*) http://www.open3d.org/docs/release/
+		http://www.open3d.org/docs/release/tutorial/pipelines/robust_kernels.html #robust and weighted least squares
+		http://www.open3d.org/docs/release/tutorial/pipelines/global_registration.html #ransac + FPFH for global registartion
+		http://www.open3d.org/docs/release/tutorial/pipelines/multiway_registration.html #pose graph registratioN!?
+		http://www.open3d.org/docs/release/tutorial/pipelines/rgbd_integration.html #TSDFs and yada yada
+
+point-line registration
+*) https://github.com/xiaoxiaotao/ceres_lm_pl_icp
+*) https://www.spiedigitallibrary.org/conference-proceedings-of-spie/10135/1013509/Which-point-line-registration/10.1117/12.2253692.full?SSO=1

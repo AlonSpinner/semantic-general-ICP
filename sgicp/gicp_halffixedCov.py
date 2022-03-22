@@ -1,6 +1,6 @@
 from scipy.optimize import fmin_cg
 import numpy as np
-from utils.transforms2D import dR2, x_to_Rt
+from .utils.transforms2D import dR2, x_to_Rt
 from sklearn.neighbors import NearestNeighbors
  
 def gicp_halffixedCov(sourcePoints, sourceCov, targetPoints, targetCov, 

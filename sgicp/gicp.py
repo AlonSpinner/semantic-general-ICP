@@ -1,6 +1,6 @@
 from scipy.optimize import least_squares
 import numpy as np
-from utils.transforms2D import dR2, x_to_Rt
+from .utils.transforms2D import dR2, x_to_Rt
 from sklearn.neighbors import NearestNeighbors
  
 def gicp(sourcePoints, sourceCov, targetPoints, targetCov, 

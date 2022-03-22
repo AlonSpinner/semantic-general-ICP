@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import utils.plotting2D
+from .utils import plotting2D
 from sklearn.neighbors import NearestNeighbors
 
 class cluster2:
@@ -29,8 +29,8 @@ class cluster2:
         '''
 
         #instance attributes
-        self.points = np.array([]) #numpy array of points (m,2,1)
-        self.covariances = np.array([]) #numpy array of covariances (m,2,2)
+        self.points = None #numpy array of points (m,2,1)
+        self.covariances = None #numpy array of covariances (m,2,2)
         self.pointLabels = [] # list of strings
      
         self.classes = [] #list of all class labels
@@ -39,15 +39,14 @@ class cluster2:
             self.addPoints(points, covariances, pointLabels)
 
     def addPoints(self,points, covariances = None, pointLabels = None):
-        assert len(covariances) == len(points) == len(pointLabels)
         
-        if self.points.size == 0:
+        if self.points is None:
             self.points = points
         else:
             self.points = np.vstack((self.points,points))
 
         if covariances is not None:
-            if self.covariances.size == 0:
+            if self.covariances is None:
                 self.covariances = covariances
             else:
                 self.covariances = np.vstack((self.covariances,covariances))
@@ -78,7 +77,7 @@ class cluster2:
             pointLabels = np.random.choice(classes, N)  
         else:
             pointLabels = None
-
+            
         self.addPoints(points, covariances, pointLabels)
 
     #goes over all Points to find classLabels.
@@ -102,7 +101,7 @@ class cluster2:
     def plot(self,ax = None, plotIndex = False, plotCov = False,
                  markerSize = 10, markerColor = None, markerShape = None):
         if ax == None:
-            ax, _ = utils.plotting2D.prepAxes()
+            ax, _ = plotting2D.prepAxes()
 
         semanticColor = True if markerColor is None else False
         semanticShape = True if markerShape is None else False
@@ -120,7 +119,7 @@ class cluster2:
             cov = None if plotCov is False else self.covariances[ii]
             index = None if plotIndex is False else ii
 
-            utils.plotting2D.point(ax, loc = point, cov = cov, 
+            plotting2D.point(ax, loc = point, cov = cov, 
                                 index = index, 
                                 markerColor = markerColor, 
                                 markerShape = markerShape, 

@@ -1,6 +1,6 @@
 from scipy.optimize import least_squares
 import numpy as np
-from utils.transforms2D import dR2, x_to_Rt
+from .utils.transforms2D import dR2, x_to_Rt
 from sklearn.neighbors import NearestNeighbors
  
 def semantic_gicp(sourcePoints, sourceCov, sourceLabels, 
@@ -18,13 +18,14 @@ def semantic_gicp(sourcePoints, sourceCov, sourceLabels,
     '''
     x = x0
     itr = 0
+    
     fminPrev = np.inf
     converged = False
     while not converged:
 
         #find data assosications
         i = DA_sourceClosestToTarget(x,sourcePoints,targetPoints, n)
-        w = computeWeights(x, sourcePoints, sourceLabels,
+        w, i = computeWeights(x, sourcePoints, sourceLabels,
                             targetPoints, targetLabels, i)
         
         #argmin
@@ -55,18 +56,17 @@ def computeWeights(x,a,ca,b,cb,i):
     outputs:
     w  : weight for each assosication 
     '''
-    R, t = x_to_Rt(x)
-    m = R @ a + t
+    #R, t = x_to_Rt(x)
+    #m = R @ a + t
 
-    w = np.zeros(len(i))
+    w = []
+    inew = []
     for k,da in enumerate(i):
-        residual = np.abs(b[da[1]] - m[da[0]])
+        #residual = np.abs(b[da[1]] - m[da[0]])
         semantics = ca[da[0]] == cb[da[1]]
-        w[k] =  1-0.5*semantics
-    return w
-
-def DA_perfect(a,b):
-    return np.array([list(range(len(a))),list(range(len(b)))]).T
+        w.append(semantics)
+        inew.append(da)
+    return np.array(w),np.array(inew)
 
 def DA_sourceClosestToTarget(x,a,b, n=1):
     '''

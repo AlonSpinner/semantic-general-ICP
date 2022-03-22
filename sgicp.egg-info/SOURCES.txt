@@ -1,0 +1,5 @@
+setup.py
+sgicp.egg-info/PKG-INFO
+sgicp.egg-info/SOURCES.txt
+sgicp.egg-info/dependency_links.txt
+sgicp.egg-info/top_level.txt

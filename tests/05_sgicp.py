@@ -13,7 +13,7 @@ yrange = (-1,3)
 sigmarange = (-0.5,0.5)
 
 cluster1 = clusters.cluster2()
-cluster1.fillClusterRandomly(4,xrange, yrange, sigmarange, classLabels)
+cluster1.fillClusterRandomly(10,xrange, yrange, sigmarange, classLabels)
 
 x_true = np.array([0.5,0,np.pi/8])
 R_true, t_true = transforms2D.x_to_Rt(x_true)
@@ -21,8 +21,8 @@ cluster2 = copy.deepcopy(cluster1)
 cluster2.transform(R_true,t_true, transformCov = True)
 
 ax, _ = plotting2D.prepAxes()
-cluster1.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'b', markerShape = 'o')
-cluster2.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'r', markerShape = 'o')
+cluster1.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'b')
+cluster2.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'r')
 ax.set_title('initial')
 
 invx_est, fmin, itr, df, i =  semantic_gicp(cluster2.points, cluster2.covariances, cluster2.pointLabels, #source
@@ -38,8 +38,8 @@ invEst_R, invEst_t = transforms2D.x_to_Rt(invx_est)
 cluster2.transform(invEst_R,invEst_t, transformCov = True)
 
 ax, _ = plotting2D.prepAxes()
-cluster1.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'b', markerShape = 'o')
-cluster2.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'r', markerShape = 'o')
+cluster1.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'b')
+cluster2.plot(ax = ax, plotIndex = True,plotCov = True, markerSize = 30, markerColor = 'r')
 ax.set_title('after ICP')
 
 plt.show()

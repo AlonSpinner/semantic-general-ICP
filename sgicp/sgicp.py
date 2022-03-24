@@ -64,8 +64,9 @@ def computeWeights(x,a,ca,b,cb,i):
     for k,da in enumerate(i):
         #residual = np.abs(b[da[1]] - m[da[0]])
         semantics = ca[da[0]] == cb[da[1]]
-        w.append(semantics)
-        inew.append(da)
+        if semantics:
+            w.append(semantics)
+            inew.append(da)
     return np.array(w),np.array(inew)
 
 def DA_sourceClosestToTarget(x,a,b, n=1):
